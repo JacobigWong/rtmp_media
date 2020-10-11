@@ -38,7 +38,7 @@ void NaluLoop::addmsg(LooperMessage *msg, bool flush)
     }
     msg_queue_.push_back(msg);
     if(msg_queue_.size() > max_nalu_/3)
-        LogWarn("have %d msg cache, it will cause delay", msg_queue_.size());
+        LogInfo("-------------------------have %d msg cache, it will cause delay", msg_queue_.size());
     queue_mutex_.unlock();
     head_data_available_->post();
 }

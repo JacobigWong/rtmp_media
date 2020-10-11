@@ -182,7 +182,112 @@ private:
     uint32_t video_frame_threshold_ = (uint32_t)(video_frame_duration_ /2);
     double video_pre_pts_ = 0;
 
-    static AVPublishTime *s_publish_time;
+    static AVPublishTime * s_publish_time;
+};
+
+
+// 用来debug rtmp拉流的关键时间点
+class AVPlayTime
+{
+public:
+    static AVPlayTime* GetInstance() {
+        if ( s_play_time == NULL )
+            s_play_time = new AVPlayTime();
+        return s_play_time;
+    }
+
+    AVPlayTime() {
+        start_time_ = getCurrentTimeMsec();
+    }
+
+    void Rest() {
+        start_time_ = getCurrentTimeMsec();
+    }
+    // 各个关键点的时间戳
+    inline const char *getKeyTimeTag() {
+        return "keytime";
+    }
+    // rtmp位置关键点
+    inline const char *getRtmpTag() {
+        return "keytime:rtmp_pull";
+    }
+    // 获取到metadata
+    inline const char *getMetadataTag() {
+        return "metadata";
+    }
+    // aac sequence header
+    inline const char *getAacHeaderTag() {
+        return "aacheader";
+    }
+    // aac raw data
+    inline const char *getAacDataTag() {
+        return "aacdata";
+    }
+    // avc sequence header
+    inline const char *getAvcHeaderTag() {
+        return "avcheader";
+    }
+
+    // 第一个i帧
+    inline const char *getAvcIFrameTag() {
+        return "avciframe";
+    }
+    // 第一个非i帧
+    inline const char *getAvcFrameTag() {
+        return "avcframe";
+    }
+    // 音视频解码
+    inline const char *getAcodecTag() {
+        return "keytime:acodec";
+    }
+    inline const char *getVcodecTag() {
+        return "keytime:vcodec";
+    }
+    // 音视频输出
+    inline const char *getAoutTag() {
+        return "keytime:aout";
+    }
+    inline const char *getVoutTag() {
+        return "keytime:vout";
+    }
+
+    // 返回毫秒
+    uint32_t getCurrenTime() {
+        int64_t t = getCurrentTimeMsec() - start_time_;
+
+        return (uint32_t)(t%0xffffffff);
+
+    }
+
+private:
+    int64_t getCurrentTimeMsec() {
+#ifdef _WIN32
+        struct timeval tv;
+        time_t clock;
+        struct tm tm;
+        SYSTEMTIME wtm;
+        GetLocalTime(&wtm);
+        tm.tm_year = wtm.wYear - 1900;
+        tm.tm_mon = wtm.wMonth - 1;
+        tm.tm_mday = wtm.wDay;
+        tm.tm_hour = wtm.wHour;
+        tm.tm_min = wtm.wMinute;
+        tm.tm_sec = wtm.wSecond;
+        tm.tm_isdst = -1;
+        clock = mktime(&tm);
+        tv.tv_sec = clock;
+        tv.tv_usec = wtm.wMilliseconds * 1000;
+        return ((unsigned long long)tv.tv_sec * 1000 + ( long)tv.tv_usec / 1000);
+#else
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        return ((unsigned long long)tv.tv_sec * 1000 + (long)tv.tv_usec / 1000);
+#endif
+    }
+
+    int64_t start_time_ = 0;
+
+    static AVPlayTime * s_play_time;
 };
 
 }

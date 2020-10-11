@@ -106,7 +106,6 @@ RET_CODE VideoOutSDL::Output(const uint8_t *video_buf, const uint32_t size)
         LogError("SDL_RenderCopy failed");
         return RET_FAIL;
     }
-     printf("SDL_RenderCopy success\n");
     // 显示
     SDL_RenderPresent(renderer_);
     return RET_OK;

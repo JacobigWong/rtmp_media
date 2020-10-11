@@ -1,6 +1,7 @@
 ﻿#include "rtmppusher.h"
 #include "aacrtmppackager.h"
 #include "timeutil.h"
+#include "avtimebase.h"
 namespace LQF
 {
 char * put_byte(char *output, uint8_t nVal)
@@ -80,24 +81,43 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
     {
     case RTMP_BODY_METADATA:
     {
+        if(!is_first_metadata_) {
+            is_first_metadata_ = true;
+            LogInfo("%s:t%u", AVPublishTime::GetInstance()->getMetadataTag(),
+                    AVPublishTime::GetInstance()->getCurrenTime());
+        }
+
         FLVMetadataMsg *metadata = (FLVMetadataMsg*)data;
         if(!SendMetadata(metadata))
         {
             LogError("SendMetadata failed");
         }
+        delete metadata;
         break;
     }
     case RTMP_BODY_VID_CONFIG:
     {
+        if(!is_first_video_sequence_) {
+            is_first_video_sequence_ = true;
+            LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAvcHeaderTag(),
+                    AVPublishTime::GetInstance()->getCurrenTime());
+        }
         VideoSequenceHeaderMsg *vid_cfg_msg = (VideoSequenceHeaderMsg*)data;
         if(!sendH264SequenceHeader(vid_cfg_msg))
         {
             LogError("sendH264SequenceHeader failed");
         }
+        delete vid_cfg_msg;
         break;
     }
     case RTMP_BODY_VID_RAW:
     {
+        if(!is_first_video_frame_) {
+            is_first_video_frame_ = true;
+            LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAvcFrameTag(),
+                    AVPublishTime::GetInstance()->getCurrenTime());
+        }
+
         NaluStruct* nalu = (NaluStruct*)data;
         if(sendH264Packet((char*)nalu->data,nalu->size,(nalu->type == 0x05) ? true : false,
                           nalu->pts))
@@ -113,9 +133,13 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
     }
     case RTMP_BODY_AUD_SPEC:
     {
+        if(!is_first_audio_sequence_) {
+            is_first_audio_sequence_ = true;
+            LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAacHeaderTag(),
+                    AVPublishTime::GetInstance()->getCurrenTime());
+        }
         AudioSpecMsg* audio_spec = (AudioSpecMsg*)data;
         uint8_t aac_spec_[4];
-         //施雨涵 aac spec
         aac_spec_[0] = 0xAF;
         aac_spec_[1] = 0x0;     // 0 = aac sequence header
         AACRTMPPackager::GetAudioSpecificConfig(&aac_spec_[2], audio_spec->profile_,
@@ -125,6 +149,11 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
     }
     case RTMP_BODY_AUD_RAW:
     {
+        if(!is_first_audio_frame_) {
+            is_first_audio_frame_ = true;
+            LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAacDataTag(),
+                    AVPublishTime::GetInstance()->getCurrenTime());
+        }
         AudioRawMsg* audio_raw = (AudioRawMsg*)data;
         if(sendPacket(RTMP_PACKET_TYPE_AUDIO, (unsigned char*)audio_raw->data,
                       audio_raw->size, audio_raw->pts))
@@ -141,7 +170,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
     default:
         break;
     }
-     LogDebug("leave");
+    LogDebug("leave");
 }
 
 bool RTMPPusher::SendMetadata(FLVMetadataMsg *metadata)
@@ -210,7 +239,7 @@ bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
     {
         return false;
     }
-    char body[1024] = { 0 };
+    uint8_t body[1024] = { 0 };
 
     int i = 0;
     body[i++] = 0x17; // 1:keyframe  7:AVC
@@ -231,7 +260,7 @@ bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
     // sps nums
     body[i++] = 0xE1;                 //&0x1f  高
     // sps data length
-    body[i++] = seq_header->sps_size_ >> 8;
+    body[i++] = (seq_header->sps_size_ >> 8) & 0xff;
     body[i++] = seq_header->sps_size_ & 0xff;
     // sps data
     memcpy(&body[i], seq_header->sps_, seq_header->sps_size_);
@@ -240,7 +269,7 @@ bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
     // pps nums
     body[i++] = 0x01; //&0x1f
     // pps data length
-    body[i++] = seq_header->pps_size_ >> 8;
+    body[i++] = (seq_header->pps_size_ >> 8) & 0xff;
     body[i++] = seq_header->pps_size_ & 0xff;
     // sps data
     memcpy(&body[i], seq_header->pps_, seq_header->pps_size_);
@@ -280,7 +309,6 @@ bool RTMPPusher::SendAudioSpecificConfig(char* data,int length)
     {
         LogInfo("RTMP_SendPacket fail %d\n",nRet);
     }
-    //int nRet = RTMP_SendPacket(rtmp, &packet, TRUE);
     RTMPPacket_Free(&packet);//释放内存
     return (nRet = 0?true:false);
 }
@@ -339,18 +367,19 @@ int RTMPPusher::sendPacket(unsigned int packet_type, unsigned char *data,
     if(packet_type == RTMP_PACKET_TYPE_AUDIO)
     {
         packet.m_nChannel = RTMP_AUDIO_CHANNEL;
-               LogInfo("audio packet timestamp:%u", timestamp);
+        //               LogInfo("audio packet timestamp:%u", timestamp);
     }
     else if(packet_type == RTMP_PACKET_TYPE_VIDEO)
     {
         packet.m_nChannel = RTMP_VIDEO_CHANNEL;
-              LogInfo("video packet timestamp:%u, size:%u", timestamp, size);
+//                      LogInfo("video packet timestamp:%u, size:%u", timestamp, size);
     }
     else
     {
         packet.m_nChannel = RTMP_NETWORK_CHANNEL;
     }
-    packet.m_headerType = RTMP_PACKET_SIZE_MEDIUM;
+
+    packet.m_headerType = RTMP_PACKET_SIZE_LARGE;
     packet.m_nTimeStamp = timestamp;
     packet.m_nInfoField2 = rtmp_->m_stream_id;
     packet.m_nBodySize = size;

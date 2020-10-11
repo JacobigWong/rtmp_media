@@ -3,8 +3,10 @@
 #include "dlog.h"
 #include "timeutil.h"
 #include "avtimebase.h"
+
 namespace LQF
 {
+
 AudioCapturer::AudioCapturer()
 {
 

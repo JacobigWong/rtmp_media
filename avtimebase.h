@@ -34,12 +34,12 @@ public:
 
     void set_audio_frame_duration(const double frame_duration) {
         audio_frame_duration_ = frame_duration;
-        audio_frame_threshold_ = frame_duration/2;
+        audio_frame_threshold_ = (uint32_t)(frame_duration/2);
     }
 
     void set_video_frame_duration(const double frame_duration) {
         video_frame_duration_ = frame_duration;
-        video_frame_threshold_ = frame_duration/2;
+        video_frame_threshold_ = (uint32_t)(frame_duration/2);
     }
 
     uint32_t get_audio_pts() {
@@ -48,16 +48,16 @@ public:
             uint32_t diff = (uint32_t)abs(pts - (long long)(audio_pre_pts_ + audio_frame_duration_));
             if(diff < audio_frame_threshold_) {
                 // 误差在阈值范围内, 保持帧间隔
-                audio_pre_pts_ += audio_frame_duration_;
-                LogDebug("get_audio_pts1:%u RECTIFY:%0.0lf", diff, audio_pre_pts_);
+                audio_pre_pts_ += audio_frame_duration_; //帧间隔累加，浮点数
+                LogInfo("get_audio_pts1:%u RECTIFY:%0.0lf", diff, audio_pre_pts_);
                 return (uint32_t)(((int64_t)audio_pre_pts_)%0xffffffff);
             }
-            audio_pre_pts_ = pts; // 误差超过半帧，重新调整pts
-            LogDebug("get_audio_pts2:%u, RECTIFY:%0.0lf", diff, audio_pre_pts_);
+            audio_pre_pts_ = (double)pts; // 误差超过半帧，重新调整pts
+            LogInfo("get_audio_pts2:%u, RECTIFY:%0.0lf", diff, audio_pre_pts_);
             return (uint32_t)(pts%0xffffffff);
         }else {
-            audio_pre_pts_ = pts; // 误差超过半帧，重新调整pts
-            LogDebug("get_audio_pts REAL_TIME:%0.0lf", audio_pre_pts_);
+            audio_pre_pts_ = (double)pts; // 误差超过半帧，重新调整pts
+            LogInfo("get_audio_pts REAL_TIME:%0.0lf", audio_pre_pts_);
             return (uint32_t)(pts%0xffffffff);
         }
     }
@@ -65,19 +65,19 @@ public:
     uint32_t get_video_pts() {
         int64_t pts = getCurrentTimeMsec() - start_time_;
         if(PTS_RECTIFY == video_pts_strategy_) {
-            uint32_t diff =abs(pts - (long long)(video_pre_pts_ + video_frame_duration_));
+            uint32_t diff =(uint32_t)abs(pts - (long long)(video_pre_pts_ + video_frame_duration_));
             if(diff < video_frame_threshold_) {
                 // 误差在阈值范围内, 保持帧间隔
                 video_pre_pts_ += video_frame_duration_;
-                LogDebug("get_video_pts1:%u RECTIFY:%0.0lf", diff, video_pre_pts_);
+                LogInfo("get_video_pts1:%u RECTIFY:%0.0lf", diff, video_pre_pts_);
                 return (uint32_t)(((int64_t)video_pre_pts_)%0xffffffff);
             }
-            video_pre_pts_ = pts; // 误差超过半帧，重新调整pts
-            LogDebug("get_video_pts2:%u RECTIFY:%0.0lf", diff, video_pre_pts_);
+            video_pre_pts_ = (double)pts; // 误差超过半帧，重新调整pts
+            LogInfo("get_video_pts2:%u RECTIFY:%0.0lf", diff, video_pre_pts_);
             return (uint32_t)(pts%0xffffffff);
         }else {
-            video_pre_pts_ = pts; // 误差超过半帧，重新调整pts
-            LogDebug("get_video_pts REAL_TIME:%0.0lf", video_pre_pts_);
+            video_pre_pts_ = (double)pts; // 误差超过半帧，重新调整pts
+            LogInfo("get_video_pts REAL_TIME:%0.0lf", video_pre_pts_);
             return (uint32_t)(pts%0xffffffff);
         }
     }
@@ -88,6 +88,61 @@ public:
     }
     void set_video_pts_strategy(PTS_STRATEGY pts_strategy){
         video_pts_strategy_ = pts_strategy;
+    }
+
+    uint32_t getCurrenTime() {
+        int64_t t = getCurrentTimeMsec() - start_time_;
+
+        return (uint32_t)(t%0xffffffff);
+
+    }
+    // 各个关键点的时间戳
+    inline const char *getKeyTimeTag() {
+        return "keytime";
+    }
+    // rtmp位置关键点
+    inline const char *getRtmpTag() {
+        return "keytime:rtmp_publish";
+    }
+
+    // 发送metadata
+    inline const char *getMetadataTag() {
+        return "keytime:metadata";
+    }
+    // aac sequence header
+    inline const char *getAacHeaderTag() {
+        return "keytime:aacheader";
+    }
+    // aac raw data
+    inline const char *getAacDataTag() {
+        return "keytime:aacdata";
+    }
+    // avc sequence header
+    inline const char *getAvcHeaderTag() {
+        return "keytime:avcheader";
+    }
+
+    // 第一个i帧
+    inline const char *getAvcIFrameTag() {
+        return "keytime:avciframe";
+    }
+    // 第一个非i帧
+    inline const char *getAvcFrameTag() {
+        return "keytime:avcframe";
+    }
+    // 音视频解码
+    inline const char *getAcodecTag() {
+        return "keytime:acodec";
+    }
+    inline const char *getVcodecTag() {
+        return "keytime:vcodec";
+    }
+    // 音视频捕获
+    inline const char *getAInTag() {
+        return "keytime:ain";
+    }
+    inline const char *getVInTag() {
+        return "keytime:vint";
     }
 private:
     int64_t getCurrentTimeMsec() {
@@ -119,16 +174,16 @@ private:
 
     PTS_STRATEGY audio_pts_strategy_ = PTS_RECTIFY;
     double audio_frame_duration_ = 21.3333;  // 默认按aac 1024 个采样点, 48khz计算
-    uint32_t audio_frame_threshold_ = audio_frame_duration_ /2;
+    uint32_t audio_frame_threshold_ = (uint32_t)(audio_frame_duration_ /2);
     double audio_pre_pts_ = 0;
 
     PTS_STRATEGY video_pts_strategy_ = PTS_RECTIFY;
     double video_frame_duration_ = 40;  // 默认是25帧计算
-    uint32_t video_frame_threshold_ = video_frame_duration_ /2;
+    uint32_t video_frame_threshold_ = (uint32_t)(video_frame_duration_ /2);
     double video_pre_pts_ = 0;
 
-    static AVPublishTime * s_publish_time;
+    static AVPublishTime *s_publish_time;
 };
-AVPublishTime * AVPublishTime::s_publish_time = NULL;
+
 }
 #endif // AVTIMEBASE_H

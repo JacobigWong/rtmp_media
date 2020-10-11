@@ -30,7 +30,7 @@ public:
     virtual RET_CODE EncodeOutput(uint8_t *out, uint32_t &size);
     virtual uint32_t GetRate()			{ return ctx_->sample_rate?ctx_->sample_rate:8000;}
     virtual int get_sample_rate()		{ return ctx_->sample_rate;				}
-    virtual int get_bit_rate()		{ return ctx_->bit_rate;				}
+    virtual int64_t get_bit_rate()		{ return ctx_->bit_rate;				}
     virtual uint64_t get_channel_layout()		{ return ctx_->channel_layout;				}
     //每通道需要的sample数量
     virtual uint32_t GetFrameSampleSize()
@@ -87,6 +87,7 @@ public:
         adts_header[0] = 0xFF;
         adts_header[1] = 0xF1;
         adts_header[2] = ((ctx_->profile) << 6) + (freqIdx << 2) + (ch_cfg >> 2);
+
         adts_header[3] = (((ch_cfg & 3) << 6) + (frame_length  >> 11));
         adts_header[4] = ((frame_length & 0x7FF) >> 3);
         adts_header[5] = (((frame_length & 7) << 5) + 0x1F);

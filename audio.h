@@ -9,13 +9,13 @@
 //public:
 //    // Must have virtual destructor to ensure child class's destructor is called
 //    virtual ~AudioEncoder(){};
-//    virtual int   Encode(uint8_t *in,int inLen,uint8_t* out,int out_len)=0;
+//    virtual int   Encode(uint8_t *in,int inLen,uint8_t* out,int outLen)=0;
 //    virtual uint32_t TrySetRate(uint32_t rate)=0;
 //    virtual uint32_t GetRate()=0;
 //    virtual uint32_t GetClockRate()=0;
-//    virtual uint32_t GetFrameSampleSize()=0;
+//    virtual uint32_t GetFrameSamples()=0;
 
-//    virtual uint32_t GetFrameSampleSize() = 0;
+//    virtual uint32_t GetFrameSize() = 0;
 
 //    AudioCodec::Type	type;
 //    int			nb_frame_samples;   // 一帧的sample数量, 算单个channel
@@ -27,7 +27,7 @@
 //public:
 //    // Must have virtual destructor to ensure child class's destructor is called
 //    virtual ~AudioDecoder(){};
-//    virtual int   Decode(const BYTE *in,int inLen,SWORD* out,int out_len)=0;
+//    virtual int   Decode(const BYTE *in,int inLen,SWORD* out,int outLen)=0;
 //    virtual DWORD TrySetRate(DWORD rate)=0;
 //    virtual DWORD GetRate()=0;
 //    AudioCodec::Type	type;

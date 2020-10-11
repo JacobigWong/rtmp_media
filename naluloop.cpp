@@ -27,7 +27,7 @@ void NaluLoop::addmsg(LooperMessage *msg, bool flush)
             // 从I帧开始
             if(tempMsg->what == RTMP_BODY_VID_RAW && ((NaluStruct*)tempMsg->obj)->type == 5)
             {
-                LogWarn("drop msg, now have %d msg", msg_queue_.size());
+                LogInfo("drop msg, now have %d msg", msg_queue_.size());
                 break;
             }
             msg_queue_.pop_front();

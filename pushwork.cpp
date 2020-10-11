@@ -203,9 +203,9 @@ RET_CODE PushWork::Init(const Properties &properties)
 
     // 设置音频pts的间隔
     double audio_frame_duration;
-  //  audio_frame_duration = 1000.0 * av_q2d(AVRational{audio_encoder_->GetFrameSampleSize(),
-       //                                               audio_encoder_->get_sample_rate()});
-   // audio_frame_duration = 1000.0/audio_encoder_->get_sample_rate() *audio_encoder_->GetFrameSampleSize();
+    audio_frame_duration = 1000.0 * av_q2d(AVRational{audio_encoder_->GetFrameSampleSize(),
+                                                      audio_encoder_->get_sample_rate()});
+    //audio_frame_duration = 1000.0/audio_encoder_->get_sample_rate() *audio_encoder_->GetFrameSampleSize();
     LogInfo("audio_frame_duration:%lf", audio_frame_duration);
     AVPublishTime::GetInstance()->set_audio_frame_duration(audio_frame_duration);
     AVPublishTime::GetInstance()->set_audio_pts_strategy(AVPublishTime::PTS_RECTIFY);//帧间隔矫正

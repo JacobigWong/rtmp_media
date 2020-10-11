@@ -28,7 +28,8 @@ SOURCES += main.cpp \
     videocapturer.cpp \
     videooutsdl.cpp \
     audiooutsdl.cpp \
-    ringbuffer.cpp     
+    ringbuffer.cpp \     
+    avtimebase.cpp
 win32 {
 INCLUDEPATH += $$PWD/ffmpeg-4.2.1-win32-dev/include
 LIBS += $$PWD/ffmpeg-4.2.1-win32-dev/lib/avformat.lib   \

@@ -46,7 +46,7 @@ RET_CODE AACDecoder::Init(const Properties &properties)
 //    ctx->request_sample_fmt		= AV_SAMPLE_FMT_S16;
     // 初始化codecCtx
     ctx->codec_type = AVMEDIA_TYPE_AUDIO;
-    ctx->sample_rate = 16000;
+    ctx->sample_rate = 48000;
     ctx->channels = 2;
 //    ctx->bit_rate = bit;
     ctx->channel_layout = AV_CH_LAYOUT_STEREO;
@@ -125,7 +125,40 @@ RET_CODE AACDecoder::Decode(const uint8_t *in, int inLen, uint8_t *out, int &out
     //Return number of samples
     return RET_OK;
 }
-
+void AACDecoder::FlushBuffers()
+{
+    avcodec_flush_buffers(ctx); //清空里面的缓存帧
+}
+RET_CODE AACDecoder::SendPacket(const AVPacket *avpkt)
+{
+    int ret = avcodec_send_packet(ctx, avpkt);
+    if(0 == ret)
+        return RET_OK;
+    if (AVERROR(EAGAIN) == ret) {
+        return RET_ERR_EAGAIN;
+    } else if(AVERROR_EOF) {
+        LogWarn("avcodec_send_packet failed, RET_ERR_EOF.\n");
+        return RET_ERR_EOF;
+    } else {
+        LogError("avcodec_send_packet failed, AVERROR(EINVAL) or AVERROR(ENOMEM) or other...\n");
+        return RET_FAIL;
+    }
+}
+RET_CODE AACDecoder::ReceiveFrame(AVFrame *frame)
+{
+    int ret = avcodec_receive_frame(ctx, frame);
+    if(0 == ret)
+        return RET_OK;
+    if (AVERROR(EAGAIN) == ret) {
+        return RET_ERR_EAGAIN;
+    } else if(AVERROR_EOF) {
+        LogWarn("avcodec_receive_frame failed, RET_ERR_EOF.\n");
+        return RET_ERR_EOF;
+    } else {
+        LogError("avcodec_receive_frame failed, AVERROR(EINVAL) or AVERROR(ENOMEM) or other...\n");
+        return RET_FAIL;
+    }
+}
 bool AACDecoder::SetConfig(const uint8_t *data, const size_t size)
 {
     return true;

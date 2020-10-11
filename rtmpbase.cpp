@@ -186,23 +186,7 @@ uint32_t  RTMPBase::GetSampleRateByFreqIdx(uint8_t freq_idx )
     }
     LogError("freq_idx:%d is error", freq_idx);
     return 44100;
-//    switch (freq_idx)
-//    {
-//        case 0 : return 96000;
-//        case 1: return 88200;
-//        case 2: return 64000;
-//        case 3: return 48000;
-//        case 4: return 44100;
-//        case 5: return 32000;
-//        case 6: return 24000;
-//        case 7: return 22050;
-//        case 8: return 16000;
-//        case 9: return 12000;
-//        case 10: return 11025;
-//        case 11: return 8000;
-//        case 12 : return 7350;
-//        default: return 44100;
-//    }
-//    return 44100;
 }
+
+
 }

@@ -136,7 +136,7 @@ int H264Encoder::Init(const Properties &properties)
     frame_->format = ctx_->pix_fmt;
 
     //Init packet
-    av_new_packet(&packet_, pictureSize);
+ //   av_new_packet(&packet_, pictureSize);
     data_size_ = ctx_->width * ctx_->height;
 
     return 0;

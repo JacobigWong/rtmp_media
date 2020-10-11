@@ -115,6 +115,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
     {
         AudioSpecMsg* audio_spec = (AudioSpecMsg*)data;
         uint8_t aac_spec_[4];
+         //施雨涵 aac spec
         aac_spec_[0] = 0xAF;
         aac_spec_[1] = 0x0;     // 0 = aac sequence header
         AACRTMPPackager::GetAudioSpecificConfig(&aac_spec_[2], audio_spec->profile_,
@@ -224,10 +225,11 @@ bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
     body[i++] = seq_header->sps_[1]; // AVCProfileIndication
     body[i++] = seq_header->sps_[2]; // profile_compatibility
     body[i++] = seq_header->sps_[3]; // AVCLevelIndication
+    //nalu 长度计算方法是 1 + (lengthSizeMinusOne & 3)，实际计算结果一直是4,高6位reserve(111111)
     body[i++] = 0xff;               // lengthSizeMinusOne
 
     // sps nums
-    body[i++] = 0xE1;                 //&0x1f
+    body[i++] = 0xE1;                 //&0x1f  高
     // sps data length
     body[i++] = seq_header->sps_size_ >> 8;
     body[i++] = seq_header->sps_size_ & 0xff;

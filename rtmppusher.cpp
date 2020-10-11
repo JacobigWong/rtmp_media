@@ -304,6 +304,7 @@ bool RTMPPusher::sendH264Packet(char *data,int size, bool is_keyframe, unsigned 
         body[i++] = 0x27;// 2:Pframe  7:AVC
     }
     body[i++] = 0x01;// AVC NALU
+    
     body[i++] = 0x00;
     body[i++] = 0x00;
     body[i++] = 0x00;

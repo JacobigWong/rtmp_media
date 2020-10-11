@@ -65,6 +65,8 @@ public:
     // 数据回调
     void YuvCallback(uint8_t* yuv, int32_t size);
 private:
+
+
     // 音频test模式
     int audio_test_ = 0;
     string input_pcm_name_;
@@ -135,6 +137,7 @@ private:
     FILE *aac_fp_ = NULL;
     FILE *pcm_flt_fp_ = NULL;
     FILE *pcm_s16le_fp_ = NULL;
+    void dump_pcm_fltp(shared_ptr<AVFrame> resampled_frames);
 };
 }
 #endif // PUSHWORK_H

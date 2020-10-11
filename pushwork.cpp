@@ -37,7 +37,11 @@ PushWork::~PushWork()
     if(pcm_s16le_fp_)
         fclose(pcm_s16le_fp_);
 }
-
+/**
+ * @brief PushWork::Init
+ * @param properties
+ * @return
+ */
 RET_CODE PushWork::Init(const Properties &properties)
 {
     // 音频test模式
@@ -189,11 +193,12 @@ RET_CODE PushWork::Init(const Properties &properties)
     metadata->framerate = video_encoder_->get_framerate();
     metadata->videodatarate = video_encoder_->get_bit_rate();
     // 设置音频相关
-    metadata->has_audio = false;
+    metadata->has_audio = true;
     metadata->channles = audio_encoder_->get_channels();
     metadata->audiosamplerate = audio_encoder_->get_sample_rate();
     metadata->audiosamplesize = 16;
-    metadata->audiodatarate = 125;
+    metadata->audiodatarate = 64;
+ //   metadata->pts = 0;
     rtmp_pusher->Post(RTMP_BODY_METADATA, metadata, false);
 
     // 设置音频pts的间隔
@@ -265,7 +270,6 @@ void PushWork::VideoCallback(NaluStruct *nalu_data)
 
 void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
 {
-
     if(!pcm_s16le_fp_)
     {
         pcm_s16le_fp_ = fopen("push_dump_s16le.pcm", "wb");
@@ -283,6 +287,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
         AudioSpecMsg *aud_spc_msg = new AudioSpecMsg(audio_encoder_->get_profile(),
                                                      audio_encoder_->get_channels(),
                                                      audio_encoder_->get_sample_rate());
+        aud_spc_msg->pts_ = 0;
         rtmp_pusher->Post(RTMP_BODY_AUD_SPEC, aud_spc_msg);
     }
     //  先进行音频重采样 s16le -> fltp 将从本地文件中读取到的数据转换成 fltp
@@ -311,22 +316,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
         if(pcm_flt_fp_)
         {
             // ffplay -ar 48000 -channels 2 -f f32le  -i push_dump_f32le.pcm
-#if  0
-            fwrite(resampled_frames[i].get()->data[0], 1,
-                    resampled_frames[i].get()->linesize[0], pcm_flt_fp_);
-            fwrite(resampled_frames[i].get()->data[1], 1,
-                    resampled_frames[i].get()->linesize[1], pcm_flt_fp_);
-            fflush(pcm_flt_fp_);
-#else
-            for (int j = 0; j < resampled_frames[i].get()->nb_samples; j++)
-            {
-                int data_size = av_get_bytes_per_sample(static_cast<AVSampleFormat>(resampled_frames[i].get()->format));
-                for (int ch = 0; ch < resampled_frames[i].get()->channels; ch++)  // 交错的方式写入, 大部分float的格式输出
-                   fwrite(resampled_frames[i].get()->data[ch] + data_size*j, 1, data_size, pcm_flt_fp_);
-               //  fwrite(frame->data[1] + data_size*i, 1, data_size, outfile);
-            }
-            fflush(pcm_flt_fp_);
-#endif
+            dump_pcm_fltp(resampled_frames[i]);
         }
         // 封装带参考计数的缓存
         int aac_size = audio_encoder_->Encode(resampled_frames[i].get(),
@@ -372,16 +362,17 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
         vid_config_msg->nHeight = video_height_;
         vid_config_msg->nFrameRate = video_fps_;
         vid_config_msg->nVideoDataRate = video_bitrate_;
+        vid_config_msg->pts_ = 0;
         rtmp_pusher->Post(RTMP_BODY_VID_CONFIG, vid_config_msg);
         if(h264_fp_)
         {
 
-            fwrite(start_code, 1, 4, h264_fp_);
-            fwrite(video_encoder_->get_sps_data(),
-                   video_encoder_->get_sps_size(), 1, h264_fp_);
-            fwrite(start_code, 1, 4, h264_fp_);
-            fwrite( video_encoder_->get_pps_data(),
-                    video_encoder_->get_pps_size(), 1, h264_fp_);
+//            fwrite(start_code, 1, 4, h264_fp_);
+//            fwrite(video_encoder_->get_sps_data(),
+//                   video_encoder_->get_sps_size(), 1, h264_fp_);
+//            fwrite(start_code, 1, 4, h264_fp_);
+//            fwrite( video_encoder_->get_pps_data(),
+//                    video_encoder_->get_pps_size(), 1, h264_fp_);
         }
     }
     // 进行编码
@@ -394,11 +385,34 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
         nalu->pts = AVPublishTime::GetInstance()->get_video_pts();
         rtmp_pusher->Post(RTMP_BODY_VID_RAW, nalu);
         LogDebug("YuvCallback Post");
-        fwrite(start_code, 1, 4, h264_fp_);
-        fwrite(video_nalu_buf,
-               video_nalu_size_, 1, h264_fp_);
-        fflush(h264_fp_);
+//        fwrite(start_code, 1, 4, h264_fp_);
+//        fwrite(video_nalu_buf,
+//               video_nalu_size_, 1, h264_fp_);
+//        fflush(h264_fp_);
     }
 }
+
+void PushWork::dump_pcm_fltp(shared_ptr<AVFrame> resampled_frames)
+{
+#if  0          //原有逻辑可能有问题
+            fwrite(resampled_frames->data[0], 1,
+                    resampled_frames->linesize[0], pcm_flt_fp_);
+            fwrite(resampled_frames->data[1], 1,
+                    resampled_frames->linesize[1], pcm_flt_fp_);
+            fflush(pcm_flt_fp_);
+#else
+            for (int j = 0; j < resampled_frames->nb_samples; j++)
+            {
+                int data_size = av_get_bytes_per_sample(static_cast<AVSampleFormat>(resampled_frames.get()->format));
+                for (int ch = 0; ch < resampled_frames->channels; ch++)  // 交错的方式写入, 大部分float的格式输出
+                   fwrite(resampled_frames->data[ch] + data_size*j, 1, data_size, pcm_flt_fp_);
+               //  fwrite(frame->data[1] + data_size*i, 1, data_size, outfile);
+            }
+            fflush(pcm_flt_fp_);
+#endif
+}
+
+
+
 }
 

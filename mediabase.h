@@ -19,6 +19,91 @@
 
 #include "dlog.h"
 
+#define NALU_TYPE_SLICE 1
+#define NALU_TYPE_DPA 2
+#define NALU_TYPE_DPB 3
+#define NALU_TYPE_DPC 4
+#define NALU_TYPE_IDR 5 //I帧
+#define NALU_TYPE_SEI 6
+#define NALU_TYPE_SPS 7
+#define NALU_TYPE_PPS 8
+#define NALU_TYPE_AUD 9 //访问分隔符
+#define NALU_TYPE_EOSEQ 10
+#define NALU_TYPE_EOSTREAM 11
+#define NALU_TYPE_FILL 12
+
+#define NALU_FRAME_I 15
+#define NALU_FRAME_P 16
+#define NALU_FRAME_B 17
+
+typedef struct{
+    unsigned char type;
+    unsigned int nTimeStamp;
+    unsigned int nStreamID;
+    unsigned char * data;
+    unsigned int len;
+    bool haveAudio;
+    bool haveVideo;
+
+    unsigned int totalSize;
+    unsigned int totalTime;
+    float percent;
+}FileTag;
+
+typedef struct {
+    uint8_t configurationVersion;
+    uint8_t avcProfileIndication;
+    uint8_t profile_compatibility;
+    uint8_t avcLevelIndication;
+    uint8_t lengthSizeMinusOne;
+    uint8_t numOfSequenceParameterSets;
+    uint16_t sequenceParameterSetLength;
+    uint8_t * sequenceParameterSetNALUnits;
+    uint8_t numOfPictureParameterSets;
+    uint16_t pictureParameterSetLength;
+    uint8_t * pictureParameterSetNALUits;
+} AVCDecoderConfigurationRecord;
+
+
+typedef struct {
+    uint8_t audioObjectType : 5;
+    uint8_t samplingFrequencyIndex : 4;
+    uint8_t channelConfiguration : 4;
+
+    typedef struct{
+        uint8_t frameLengthFlag : 1;
+        uint8_t dependsOnCoreCoder : 1;
+        uint8_t extensionFlag : 1;
+    }GASpecificConfig;
+    GASpecificConfig gaSpecificConfig;
+}FLV_AudioSpecificConfig;
+
+enum ZERO_PIX_FMT {
+    ZERO_PIX_FMT_NONE = -1,
+    ZERO_PIX_FMT_YUV420P,   ///< planar YUV 4:2:0, 12bpp, (1 Cr & Cb sample per 2x2 Y samples)
+    ZERO_PIX_FMT_YUYV422,   ///< packed YUV 4:2:2, 16bpp, Y0 Cb Y1 Cr
+    ZERO_PIX_FMT_RGB24,     ///< packed RGB 8:8:8, 24bpp, RGBRGB...
+    ZERO_PIX_FMT_BGR24,     ///< packed RGB 8:8:8, 24bpp, BGRBGR...
+};
+typedef struct VideoFrame
+{
+    uint8_t *data[8] = {NULL};         // 类似FFmpeg的buf, 如果是
+    int32_t linesize[8] = {0};
+    int32_t width;
+    int32_t height;
+    int format = ZERO_PIX_FMT_YUV420P;
+}VideoFrame;
+
+enum CB_EVENT{
+    // 音频事件
+    EVT_AUD_PKT_CACHE_ENOUGH,   //
+    EVT_AUD_UNDER_RUN,      // 音频缺乏数据输出
+    // 视频事件
+
+    // RTMP拉流事件
+
+};
+
 #ifdef _MSC_VER
 static inline int strcasecmp(const char *s1, const char *s2)
 {
@@ -331,7 +416,7 @@ public:
         else if (strcasecmp(val,(char *)"true")==0)
             return true;
         //Return value
-        return atoi(val);
+        return bool((atoi(val)));
     }
 };
 inline void* malloc32(size_t size)
@@ -494,6 +579,17 @@ public:
     virtual ~MsgBaseObj(){}
 };
 
+struct LooperMessage;
+typedef struct LooperMessage LooperMessage;
+
+// 消息载体
+struct LooperMessage {
+    int what;
+    MsgBaseObj *obj;
+    bool quit;
+};
+
+
 enum RTMP_BODY_TYPE
 {
     RTMP_BODY_METADATA, // metadata
@@ -557,7 +653,7 @@ public:
     int videocodecid = -1;
     int64_t videodatarate = 0;
     int width = 0;
-
+    int64_t pts = 0;
 };
 
 
@@ -602,6 +698,7 @@ public:
     uint8_t profile_ = 2;   //2 : AAC LC(Low Complexity)
     uint8_t channels_ = 2;
     uint32_t sample_rate_ = 48000;
+    int64_t pts_;
 };
 
 class NaluStruct :public MsgBaseObj
@@ -648,6 +745,7 @@ public:
     unsigned int    nHeight;
     unsigned int    nFrameRate;     // fps
     unsigned int    nVideoDataRate; // bps
+    int64_t pts_ = 0;
 };
 
 struct MsgRTMPPPack : MsgBaseObj

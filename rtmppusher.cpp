@@ -102,6 +102,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
             LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAvcHeaderTag(),
                     AVPublishTime::GetInstance()->getCurrenTime());
         }
+        //0x1700
         VideoSequenceHeaderMsg *vid_cfg_msg = (VideoSequenceHeaderMsg*)data;
         if(!sendH264SequenceHeader(vid_cfg_msg))
         {
@@ -117,7 +118,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
             LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAvcFrameTag(),
                     AVPublishTime::GetInstance()->getCurrenTime());
         }
-
+        //1701 or 2701
         NaluStruct* nalu = (NaluStruct*)data;
         if(sendH264Packet((char*)nalu->data,nalu->size,(nalu->type == NALU_TYPE_IDR) ? true : false,
                           nalu->pts))
@@ -138,6 +139,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
             LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAacHeaderTag(),
                     AVPublishTime::GetInstance()->getCurrenTime());
         }
+        //0xaf00
         AudioSpecMsg* audio_spec = (AudioSpecMsg*)data;
         uint8_t aac_spec_[4];
         aac_spec_[0] = 0xAF;
@@ -154,6 +156,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
             LogInfo("%s:t%u", AVPublishTime::GetInstance()->getAacDataTag(),
                     AVPublishTime::GetInstance()->getCurrenTime());
         }
+        //0xaf01
         AudioRawMsg* audio_raw = (AudioRawMsg*)data;
         if(sendPacket(RTMP_PACKET_TYPE_AUDIO, (unsigned char*)audio_raw->data,
                       audio_raw->size, audio_raw->pts))
@@ -344,14 +347,8 @@ bool RTMPPusher::sendH264Packet(char *data,int size, bool is_keyframe, unsigned 
     unsigned char *body = new unsigned char[size + 9];
 
     int i = 0;
-    if (is_keyframe)
-    {
-        body[i++] = 0x17;// 1:Iframe  7:AVC
-    }
-    else
-    {
-        body[i++] = 0x27;// 2:Pframe  7:AVC
-    }
+
+    body[i++] = is_keyframe ? 0x17 : 0x27;// 1:Iframe  7:AVC // 2:Pframe  7:AVC
     body[i++] = 0x01;// AVC NALU
     
     body[i++] = 0x00; //CompositionTime

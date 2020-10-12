@@ -154,6 +154,7 @@ RET_CODE PushWork::Init(const Properties &properties)
     AudioResampleParams aud_params;
     aud_params.logtag = "[audio-resample]";
     aud_params.src_sample_fmt = (AVSampleFormat)mic_sample_fmt_;
+    //48000
     aud_params.dst_sample_fmt = (AVSampleFormat)audio_encoder_->get_sample_format();
     aud_params.src_sample_rate = mic_sample_rate_;
     aud_params.dst_sample_rate = audio_encoder_->get_sample_rate();
@@ -343,6 +344,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
             LogDebug("PcmCallback Post");
         }
     }
+
 }
 
 void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
@@ -378,7 +380,7 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
     }
     // 进行编码
     video_nalu_size_ = VIDEO_NALU_BUF_MAX_SIZE;
-    //传出来的不带startcode
+    //传出来的不带startcode,因为已经被过+4滤掉了
     if(video_encoder_->Encode(yuv, 0, video_nalu_buf, video_nalu_size_) == 0)
     {
         // 获取到编码数据

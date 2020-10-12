@@ -47,11 +47,14 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
     //uint8_t sample_rate:4;//采样率
     //uint8_t channel_num:4;//声道数
     //uint8_t tail:3;//最后3位固定为0
-
+    //AudioSpecificConfig
+    AudioSpecificConfig config;
+    config.type = profile+1;
     uint16_t _profile = (uint16_t)profile+1;
     _profile <<= 11;
 
     uint32_t _samplerate = 0;
+
     switch (samplerate)
     {
     case  96000:

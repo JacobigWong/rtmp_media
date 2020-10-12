@@ -119,7 +119,7 @@ void RTMPPusher::handle(int what, MsgBaseObj *data)
         }
 
         NaluStruct* nalu = (NaluStruct*)data;
-        if(sendH264Packet((char*)nalu->data,nalu->size,(nalu->type == 0x05) ? true : false,
+        if(sendH264Packet((char*)nalu->data,nalu->size,(nalu->type == NALU_TYPE_IDR) ? true : false,
                           nalu->pts))
         {
             //LogInfo("send pack ok");
@@ -232,7 +232,28 @@ bool RTMPPusher::SendMetadata(FLVMetadataMsg *metadata)
 
     return sendPacket(RTMP_PACKET_TYPE_INFO, (unsigned char*)body, p - body, 0);
 }
-
+/**
+ * @brief
+AVCDecoderConfigurationRecord {
+    uint32_t(8) configurationVersion = 1;  [0]
+    uint32_t(8) AVCProfileIndication;       [1]
+    uint32_t(8) profile_compatibility;      [2]
+    uint32_t(8) AVCLevelIndication;         [3]
+    bit(6) reserved = ‘111111’b;            [4]
+    uint32_t(2) lengthSizeMinusOne;         [4] 计算方法是 1 + (lengthSizeMinusOne & 3)，实际计算结果一直是4
+    bit(3) reserved = ‘111’b;                   [5]
+    uint32_t(5) numOfSequenceParameterSets; [5] SPS 的个数，计算方法是 numOfSequenceParameterSets & 0x1F，实际计算结果一直为1
+    for (i=0; i< numOfSequenceParameterSets; i++) {
+        uint32_t(16) sequenceParameterSetLength ;   [6,7]
+        bit(8*sequenceParameterSetLength) sequenceParameterSetNALUnit;
+    }
+    uint32_t(8) numOfPictureParameterSets;      PPS 的个数，一直为1
+    for (i=0; i< numOfPictureParameterSets; i++) {
+        uint32_t(16) pictureParameterSetLength;
+        bit(8*pictureParameterSetLength) pictureParameterSetNALUnit;
+    }
+}
+ */
 bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
 {
     if (seq_header == NULL)
@@ -248,7 +269,7 @@ bool RTMPPusher::sendH264SequenceHeader(VideoSequenceHeaderMsg *seq_header)
     body[i++] = 0x00;
     body[i++] = 0x00;
     body[i++] = 0x00; // fill in 0;   0
-
+/*-----------------------------------------------------------------*/
     // AVCDecoderConfigurationRecord.
     body[i++] = 0x01;               // configurationVersion
     body[i++] = seq_header->sps_[1]; // AVCProfileIndication
@@ -333,7 +354,7 @@ bool RTMPPusher::sendH264Packet(char *data,int size, bool is_keyframe, unsigned 
     }
     body[i++] = 0x01;// AVC NALU
     
-    body[i++] = 0x00;
+    body[i++] = 0x00; //CompositionTime
     body[i++] = 0x00;
     body[i++] = 0x00;
 

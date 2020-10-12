@@ -84,7 +84,9 @@ public:
         }
         uint8_t ch_cfg = ctx_->channels;
         uint32_t frame_length = aac_length + 7;
-        adts_header[0] = 0xFF;
+        adts_header[0] = 0xFF; //界定符，AAC的祼数据是除去前面的7个字节的，在发送RTMP时，要去掉这7个字节，
+                                //如果是一边压缩一边发送RTMP，不需要界定帧
+                                //因为aac每次压缩完成的输出就是一个完整的帧数据，我们只需要将该帧打包发送即可
         adts_header[1] = 0xF1;
         adts_header[2] = ((ctx_->profile) << 6) + (freqIdx << 2) + (ch_cfg >> 2);
 

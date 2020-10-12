@@ -325,6 +325,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
         {
             if(aac_fp_)
             {
+                //AAC的祼数据是除去前面的7个字节的，在发送RTMP时，我们要去掉这7个字节,而本地存储需要adts
                 uint8_t adts_header[7];
                 audio_encoder_->GetAdtsHeader(adts_header, aac_size);
                 fwrite(adts_header, 1, 7, aac_fp_);
@@ -377,6 +378,7 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
     }
     // 进行编码
     video_nalu_size_ = VIDEO_NALU_BUF_MAX_SIZE;
+    //传出来的不带startcode
     if(video_encoder_->Encode(yuv, 0, video_nalu_buf, video_nalu_size_) == 0)
     {
         // 获取到编码数据
@@ -395,20 +397,36 @@ void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
 void PushWork::dump_pcm_fltp(shared_ptr<AVFrame> resampled_frames)
 {
 #if  0          //原有逻辑可能有问题
-            fwrite(resampled_frames->data[0], 1,
-                    resampled_frames->linesize[0], pcm_flt_fp_);
-            fwrite(resampled_frames->data[1], 1,
-                    resampled_frames->linesize[1], pcm_flt_fp_);
-            fflush(pcm_flt_fp_);
+        fwrite(resampled_frames->data[0], 1,
+                resampled_frames->linesize[0], pcm_flt_fp_);
+        fwrite(resampled_frames->data[1], 1,
+                resampled_frames->linesize[1], pcm_flt_fp_);
+        fflush(pcm_flt_fp_);
 #else
-            for (int j = 0; j < resampled_frames->nb_samples; j++)
-            {
-                int data_size = av_get_bytes_per_sample(static_cast<AVSampleFormat>(resampled_frames.get()->format));
-                for (int ch = 0; ch < resampled_frames->channels; ch++)  // 交错的方式写入, 大部分float的格式输出
-                   fwrite(resampled_frames->data[ch] + data_size*j, 1, data_size, pcm_flt_fp_);
-               //  fwrite(frame->data[1] + data_size*i, 1, data_size, outfile);
-            }
-            fflush(pcm_flt_fp_);
+    int data_size = av_get_bytes_per_sample(static_cast<AVSampleFormat>(resampled_frames->format)) ;
+    static int size = av_samples_get_buffer_size(NULL, resampled_frames->channels,
+                                                 resampled_frames->nb_samples,
+                                                 static_cast<AVSampleFormat>(resampled_frames->format),
+                                                 1);
+
+    static shared_ptr<char> dump_buffer(new char[size], [](char *ptr){ delete [] ptr; });
+
+    for (int i = 0, j = 0; j < resampled_frames->nb_samples; j++)
+    {
+         // ffplay -ar 48000 -channels 2 -f f32le  -i push_dump_f32le.pcm
+        // 交错的方式写入, 大部分float的格式输出 fltp -> f32le
+        for (int ch = 0; ch < resampled_frames->channels; ch++, i++)  {
+            memcpy(dump_buffer.get() + data_size * i, resampled_frames->data[ch] + data_size * j, data_size);
+             //fwrite(resampled_frames->data[ch] + data_size*j, 1, data_size, pcm_flt_fp_);
+            //  fwrite(frame->data[ch] + data_size*i, 1, data_size, outfile);
+        }
+
+
+    }
+
+    fwrite(dump_buffer.get(), size, 1, pcm_flt_fp_);
+    fflush(pcm_flt_fp_);
+
 #endif
 }
 

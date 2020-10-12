@@ -177,9 +177,16 @@ int H264Encoder::Encode(uint8_t *in, int in_samples, uint8_t *out, int &out_size
 //        printf("Succeed to encode frame: %5d\tsize:%5d\n", framecnt, packet.size);
         framecnt++;
         // 跳过00 00 00 01 startcode
-        memcpy(out, packet_.data + 4, packet_.size - 4);
-        out_size = packet_.size - 4;
-        av_packet_unref(&packet_);       //释放内存 不释放则内存泄漏
+        if (packet_.data[2] == 0) {/*0x00000001*/
+            memcpy(out, packet_.data + 4, packet_.size - 4);
+            out_size = packet_.size - 4;
+        } else if (packet_.data[2] == 1) { /*0x000001*/
+            memcpy(out, packet_.data + 3, packet_.size - 3);
+            out_size = packet_.size - 3;
+            LogInfo("start coed size = %d\n", 3);
+        }
+
+         av_packet_unref(&packet_);       //释放内存 不释放则内存泄漏
         return 0;
     }
 

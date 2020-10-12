@@ -3,18 +3,15 @@
 #include "timeutil.h"
 namespace LQF
 {
-void* Looper::trampoline(void* p)
+void* Looper::trampoline()
 {
     LogInfo("at Looper trampoline");
-    ((Looper*)p)->loop();
+    loop();
     return NULL;
 }
 
 Looper::Looper() {
-    LogInfo("at Looper create");
-    head_data_available_ = new Semaphore(0);
-    worker_ = new std::thread(trampoline, this);
-    running_ = true;
+     head_data_available_ = new Semaphore(0);
 }
 
 
@@ -27,6 +24,17 @@ Looper::~Looper()
     }
 }
 
+void Looper::start()
+{
+    LogInfo("at Looper create");
+    if(false) {
+        worker_ = new std::thread(trampoline, this);
+    } else {
+        loop();
+    }
+
+    running_ = true;
+}
 //
 void Looper::Post(int what, MsgBaseObj *data, bool flush)
 {

@@ -28,11 +28,11 @@ public:
     //flush 是否清空消息队列
     void Post(int what, MsgBaseObj *data, bool flush = false);
     void Stop();
-
+    void start();
     virtual void handle(int what, MsgBaseObj *data);
 private:
 	virtual void addmsg(LooperMessage *msg, bool flush);
-    static void* trampoline(void* p);
+   void* trampoline();
     void loop();
 protected:
     std::deque< LooperMessage * > msg_queue_;

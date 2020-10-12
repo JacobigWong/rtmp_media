@@ -154,7 +154,7 @@ RET_CODE PushWork::Init(const Properties &properties)
     AudioResampleParams aud_params;
     aud_params.logtag = "[audio-resample]";
     aud_params.src_sample_fmt = (AVSampleFormat)mic_sample_fmt_;
-    //48000
+
     aud_params.dst_sample_fmt = (AVSampleFormat)audio_encoder_->get_sample_format();
     aud_params.src_sample_rate = mic_sample_rate_;
     aud_params.dst_sample_rate = audio_encoder_->get_sample_rate();
@@ -256,6 +256,8 @@ RET_CODE PushWork::Init(const Properties &properties)
         LogError("VideoCapturer Start failed");
         return RET_FAIL;
     }
+
+    rtmp_pusher->start();
     return RET_OK;
 }
 

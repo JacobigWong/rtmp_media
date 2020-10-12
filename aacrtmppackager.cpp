@@ -42,6 +42,7 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
                                             const uint32_t samplerate,
                                             const uint32_t channel_num)
 {
+    //共2字节
     //uint8_t type:5;//编码结构类型，AAC main编码为1，LOW低复杂度编码为2，SSR为3
     //uint8_t sample_rate:4;//采样率
     //uint8_t channel_num:4;//声道数

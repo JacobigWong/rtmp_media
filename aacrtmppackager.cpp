@@ -48,8 +48,7 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
     //uint8_t channel_num:4;//声道数
     //uint8_t tail:3;//最后3位固定为0
     //AudioSpecificConfig
-    AudioSpecificConfig config;
-    config.type = profile+1;
+
     uint16_t _profile = (uint16_t)profile+1;
     _profile <<= 11;
 
@@ -102,6 +101,7 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
         break;
     }
 
+
     _samplerate <<= 7;
 
     uint16_t _channel_num = (uint16_t)channel_num;
@@ -111,6 +111,9 @@ int AACRTMPPackager::GetAudioSpecificConfig(uint8_t* data, const uint32_t profil
 
     data[0] = (uint8_t)(audio_spec >> 8);
     data[1] = 0xff & audio_spec;
+
+   // AudioSpecificConfig config;
+
 
     return 0;
 }

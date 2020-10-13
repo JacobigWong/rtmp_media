@@ -232,7 +232,7 @@ bool RTMPPusher::SendMetadata(FLVMetadataMsg *metadata)
     }
     p = put_amf_string(p, "");
     p = put_byte(p, AMF_OBJECT_END);
-
+    //18 以 AMF0 编码
     return sendPacket(RTMP_PACKET_TYPE_INFO, (unsigned char*)body, p - body, 0);
 }
 /**

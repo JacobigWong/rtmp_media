@@ -251,6 +251,10 @@ RET_CODE PushWork::Init(const Properties &properties)
     video_capturer->AddCallback(std::bind(&PushWork::YuvCallback, this,
                                           std::placeholders::_1,
                                           std::placeholders::_2));
+
+    video_capturer->AddCallback(std::bind(&VideoOutSDL::Output, video_out_sdl,
+                                          std::placeholders::_1,
+                                          std::placeholders::_2));
     if(video_capturer->Start() != RET_OK)
     {
         LogError("VideoCapturer Start failed");
@@ -351,8 +355,7 @@ void PushWork::PcmCallback(uint8_t *pcm, int32_t size)
 
 void PushWork::YuvCallback(uint8_t* yuv, int32_t size)
 {
-    if(video_out_sdl)
-        video_out_sdl->Output(yuv, size);
+
     char start_code[] = {0, 0, 0, 1};
     if(need_send_video_config)
     {

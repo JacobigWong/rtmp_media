@@ -4,6 +4,8 @@
 #include <functional>
 #include "captuerelooper.h"
 #include "mediabase.h"
+#include <algorithm>
+#include <list>
 
 namespace LQF {
 using std::function;
@@ -27,7 +29,7 @@ public:
     virtual void Loop();
     void AddCallback(function<void(uint8_t*, int32_t)> callable_object)
     {
-        callable_object_ = callable_object;
+        m_listNotify.push_back(callable_object);
     }
 private:
     int video_test_ = 0;
@@ -50,8 +52,7 @@ private:
     uint8_t *yuv_buf_ = NULL;
     int yuv_buf_size = 0;
 
-
-    function<void(uint8_t*, int32_t)> callable_object_ = NULL;
+    std::list<std::function<void(uint8_t*, int32_t)>> m_listNotify;
 };
 }
 

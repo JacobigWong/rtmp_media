@@ -47,10 +47,11 @@ void VideoCapturer::Loop()
             break;
         if(readYuvFile(yuv_buf_, yuv_buf_size) == 0)
         {
-            if(callable_object_)
-            {
-                callable_object_(yuv_buf_, yuv_buf_size);
-            }
+            std::for_each(m_listNotify.begin(),
+                          m_listNotify.end(),
+                          [&](std::function<void(uint8_t*, int32_t)> func) {
+                func(yuv_buf_, yuv_buf_size);
+            });
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -84,7 +85,6 @@ int VideoCapturer::readYuvFile(uint8_t *yuv_buf, int32_t yuv_buf_size)
         ret = ::fread(yuv_buf, 1, yuv_buf_size, yuv_fp_);
         if(ret != yuv_buf_size)
         {
-
             return -1;
         }
     }
